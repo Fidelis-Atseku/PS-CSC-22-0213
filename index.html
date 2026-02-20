@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="script\aframe.min.js"></script>
+    <title>Villa</title>
+</head>
+<body>
+
+<a-scene shadow="type: pcfsoft">
+
+    <a-sky src="url(assets\textures\HdrSkyMorning004_preview1.jpg)"></a-sky>
+
+    <a-light id="sun" type="point" intensity="1" color="#b5954f" position="-360 60 30" castShadow="true" shadow="mapSize: 1024 1024; near: 0.1; far: 50"></a-light>
+
+    <a-light id="ambient" type="ambient" intensity="0.3"></a-light>
+
+    <a-light class="room-light" type="point" castShadow="true" intensity="0.5" position="-14.4 4.8 8.7" shadow="mapSize: 1024 1024; near: 0.1; far: 50"></a-light>
+
+    <a-camera position="0 2 30"></a-camera>
+
+    <a-entity id="villa" gltf-model="url(assets/models/myVilla.glb)" shadow="cast: true; receive: true"></a-entity>
+
+    <script>
+    AFRAME.registerComponent('wave-pool', {
+      schema: {
+        amplitude: {type: 'number', default: 0.05},
+        speed: {type: 'number', default: 2}
+      },
+      init: function () {
+        const villa = document.querySelector('#villa');
+        villa.addEventListener('model-loaded', () => {
+          const model = villa.getObject3D('mesh');
+          if (!model) return;
+
+          model.traverse((node) => {
+            if (node.name === "pool-surface") {
+              this.pool = node;
+
+              node.material = new THREE.MeshStandardMaterial({
+                color: 0x5ec6e8,        
+                transparent: true,
+                opacity: 0.6,
+                metalness: 0,
+                roughness: 0.05,
+                reflectivity: 0.1,
+                side: THREE.DoubleSide
+              });
+
+              this.geometry = this.pool.geometry.clone();
+              this.originalPositions = this.geometry.attributes.position.array.slice();
+            }
+          });
+        });
+      },
+      tick: function (time, timeDelta) {
+        if (!this.pool) return;
+
+        const positions = this.pool.geometry.attributes.position.array;
+        const original = this.originalPositions;
+        const amplitude = this.data.amplitude;
+        const speed = this.data.speed;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const x = original[i];
+          const z = original[i + 2];
+          positions[i + 1] = original[i + 1]
+                             + Math.sin((x + time * 0.001 * speed) * 2) * amplitude
+                             + Math.cos((z + time * 0.001 * speed) * 2) * amplitude;
+        }
+
+        this.pool.geometry.attributes.position.needsUpdate = true;
+      }
+    });
+
+    const villaEl = document.querySelector('#villa');
+    villaEl.setAttribute('wave-pool', '');
+    </script>
+
+</a-scene>
+
+</body>
+</html>
